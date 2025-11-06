@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>P-test</title>
+  <style>
+    :root{--bg:#f2f6fd;--card:#d2d8e4;--muted:#9aa4b2;--accent:#60a5fa;--yes:#22c55e;--no:#ef4444}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:linear-gradient(180deg,#eaebee 0%,#e7e8ea 100%);color:#000000}
+    header{padding:28px 28px 12px;border-bottom:1px solid rgba(255, 255, 255, 0)}
+    h1{margin:0;font-size:20px}
+    p.lead{color:var(--muted);margin:6px 0 0;font-size:13px}
+    main{max-width:980px;margin:28px auto;padding:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px;padding:18px;box-shadow:0 6px 30px rgba(2,6,23,0.6);}
+    .meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+    .chip{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted)}
+    form{display:grid;grid-template-columns:1fr 260px;gap:12px}
+    .questions{padding-right:12px}
+    .q{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.01)}
+    .q .text{font-size:14px;color:#0e0f10}
+    .toggle{display:inline-flex;align-items:center;gap:10px}
+    .switch{--w:64px;--h:28px;position:relative;width:var(--w);height:var(--h);background:rgba(247, 243, 243, 0.04);border-radius:999px;padding:4px;cursor:pointer}
+    .knob{position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:all .18s ease}
+    .switch.yes{background:linear-gradient(90deg,var(--yes),#16a34a)}
+    .switch.yes .knob{transform:translateX(36px)}
+    .label-yes{font-size:12px;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,0.15);color:#eaffef}
+    .label-no{font-size:12px;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,0.15);color:#ffecec}
+    aside{padding-left:18px}
+    .summary{display:grid;gap:8px}
+    .bar{height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+    .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#3b82f6);width:10%}
+    .controls{display:flex;gap:8px;margin-top:12px}
+    button{background:var(--accent);border:0;padding:10px 12px;border-radius:8px;color:white;cursor:pointer}
+    .small{font-size:13px;color:var(--muted)}
+    footer{color:var(--muted);font-size:12px;margin-top:18px}
+    @media (max-width:880px){form{grid-template-columns:1fr}aside{padding-left:0}}
+    textarea{width:100%;height:120px;border-radius:8px;padding:8px;background:#ffffff;color:#111315;border:1px solid rgba(255,255,255,0.03)}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>P-test</h1>
+    <p class="lead">
+        <a href="#" class="btn-download" onclick="downloadResume()">Download PDF</a>
+    </p>
+  </header>
+
+  <main id="content">
+    <div class="card">
+
+
+      <form id="survey">
+        <div class="questions" id="questions"></div>
+
+        <aside>
+          <div class="summary">
+            <!-- <div><strong>Quick controls</strong></div>
+            <div class="controls">
+              <button type="button" id="export">Export JSON</button>
+              <button type="button" id="reset">Reset</button>
+            </div>
+            <div class="small">Yes count: <span id="yesCount">0</span></div>
+            <div class="small">No count: <span id="noCount">0</span></div>
+            <div style="margin-top:8px;"><textarea id="output" readonly></textarea></div>
+            <footer>Note: This is an educational demo, not a clinical tool.</footer> -->
+          </div>
+        </aside>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // Questions provided by the user (kept verbatim, typos included)
+    const questions = [
+"1. Do you have many different hobbies?",
+"2. Do you stop to think things over before doing anything?",
+"3. Does your mood often go up and down?",
+"4. Have you ever taken the praise for something you knew someone else had really done?",
+"5. Do you take much notice of what people think?",
+"6. Are you a talkative person?",
+"7. Would being in debt worry you?",
+"8. Do you ever feel 'just miserable' for no reason?",
+"10 Were you ever greedy by helping yourself to more than your sharc of anything?",
+"9. Do you give money to charities?",
+"11. Are you rather lively?",
+"12. Would it upset you a lot to see a child or an animal suTer?",
+"13. Do you often worry about things you should not have done or said?",
+"14. Do you dislike people who don't know how to behave themselves?",
+"15. Iè you say you will do somnething, do you always kccp your promise no matter how incon venient it might be?",
+"16 Can you usually let yoursell go and enjoy yourself at a lively party?",
+"17. Are you an irritable person?",
+"18. Should people always respect the law?",
+"19. Have you ever blamed someone for doing something you knew was really your fault?",
+"20. Do you enjoy mecling new people?",
+"21. Are good manners vcry important?",
+"22. Are your leclings casily hurt?",
+"23. Are all your habits good and desirable ones?",
+"24. Do you tend to kecp in the background on social occasions?",
+"28 Do you like going oul a lot?",
+"25. Would you take drugs which may have strange or dangerous elfects?",
+"26. Do you often fecl 'fed-up'?",
+"27 Have you cver taken anyth1ng (even a pin or button) that belonged to someone else?",
+"28 Do you like going oul a lot?",
+"29. Do you prefcr to go your own way rather than act by the rules?",
+"30. Do you enjoy hurting people you love?",
+"31 Are you often troubled about feclings of guilt?",
+"32 Do you somctimes talk about things you know nothing about?",
+"33. Do you prefer read1ng to meetng people?",
+"34. Do you have enemies who want to harm you?",
+"35. Would you call yourself nervous person?",
+"36 Do you have many friends?",
+"37. Do you enjoy pract1cal jokes that can sometimes really hurt people?",
+"38. Are you a worrier?",
+"39. As a child did you do as you were told immcdiately and without grumbling?",
+"40. Would you call yourself happy-go-lucky?",
+"41. Do good manners and cleanliness malter much to you?",
+"42. Have you often gone against your parents' wishes?",
+"43. Do you worry about awful things that might happen?",
+"44 Have you ever broken or lost something belonging to someone else?",
+"45. Do you usually take the initiative in making new friends?",
+"46 Would you call yourself tense or 'highly-strung'?",
+"47 Arc you mostly quiet when you are with other people?",
+"48 Do you think marriage is old-fashioncd and should be done away with?",
+"49 Do you sometimes boast a little?",
+"50 Are you more easy-going about right and wrong than most people?",
+"51. Can you casily get some ife into a rather dull party?",
+"52. Do you worry about your health?",
+"53. Have you ever said anything bad or nasty about anyonc?",
+"54 Do you cnjoy co-operat1ng with others?",
+"55 Do you like telling jokes and funny stories to your friends?",
+"56. Do most things taste the same to you?",
+"57. As a child were you ever checky to your parents?",
+"58. Do you like mixing with people?",
+"59. Does it worry you if you know there are mistakes in your work?",
+"60. Do you suffer from slecplessness?",
+"61. Have people said that you somctimes act too rashly?",
+"62. Do you always wash before a meal?",
+"63. Do you nearly always have a 'ready answer' when people talk to you?",
+"64. Do you like to arrive at appointments in plenty of time?",
+"65 Have you often felt listless and tired for no reason?",
+"66 Have you ever cheated at a game?",
+"67 Do you ou like doing things in which you have to act quickly?",
+"68 Is ???? yOur mother a good woman",
+"69 Do you often make dec1sions on the spur of the moment?",
+"70 Do you olten feel life 1s very dull?",
+"71 Have you ever taken advantage of someone?",
+"72 Do you often take on more activities than you have time for?",
+"73. Are there several pcople who keep trying to avoid you?",
+"74. Do you worry a lot about your looks?",
+"75. Do you think people spend too much time safeguarding their future with savings and insurance?",
+"76. Have you ever wished that you were dead?",
+"77. Would you dodge paying taxes if you were sure you could never be found out?",
+"78. Can you get a party going?",
+"79, Do you try not to be rude to people?",
+"80 Do you worry too long after an embarrassing expericnce?",
+"81. Do you generally 'look before you leap'?",
+"82. Have you ever insisted on having your own way?",
+"83 Do you suffer from 'nerves'?",
+"84. Do you often feel lonely?",
+"85 Can you on the whole trust pcople to tell the truth?",
+"86 Do you always practice what you preach?",
+"87. Are you easily hurt when people find fault with you or the wotk you do?",
+"88 Is it better to follow society's rules than go your own way'?",
+"89 Have you ever been late for an appointnent or work?",
+"90 Do you like plenty of bustle and excitermncnt around you?",
+"91. Would you l1ke other people be afraid of you?",
+"92. Are you sormetimes bubbling over with energy and sometimes very sluggish?",
+"93 Do you sometimes put off until tomorrow what you ought to do today?",
+"94 Do other people think of you as being very lively?",
+"95. Do peoplc tell you a lot of lies?",
+"96 Do you believe one has special duties to one's family?",
+"97 Are you touchy about some things?",
+"98. Are you always willing to udmit it when you have made a mistake?",
+"99. Would you feel very sorry for an animal caught in a trap?",
+"100 When your ternper rises, do you find it dilficult to control?"
+    ];
+
+    // Prefilled answers (yes/no) crafted to reflect: Aggressive · Empathic · Calm · Innovative
+    // Strategy summary:
+    // - Aggressive: some 'yes' on assertive/rule-breaking items (e.g., prefer own way, take initiative)
+    // - Empathic: 'no' to hurting others, 'yes' to charity, caring items
+    // - Calm: 'no' to worry/anxiety items, 'yes' to steady/collected items
+    // - Innovative: 'yes' to many hobbies, novelty, go-your-own-way, risk-taking (moderate)
+    const prefill = [
+      'yes', //1 hobbies -> innovative
+      'no',  //2 stop to think -> calm (no impulsivity)
+      'no',  //3 mood up and down -> calm
+      'no',  //4 taking praise -> empathic
+      'no',  //5 notice what people think -> go-your-own-way (innovative)
+      'no', //6 talkative -> social
+      'yes',  //7 debt worry -> calm
+      'no',  //8 feel miserable -> calm
+      'no',  //10 greedy -> empathic
+      'yes', //9 charity -> empathic
+      'yes', //11 lively -> energetic
+      'yes', //12 upset at child/animal suffer -> empathic
+      'yes',  //13 worry about things -> calm
+      'yes', //14 dislike bad manners -> assertive/aggressive?
+      'yes', //15 keep promise -> empathic/calm
+      'yes', //16 let go at party -> social
+      'yes', //17 irritable -> slight aggression
+      'yes', //18 respect law -> calm/responsible
+      'no',  //19 blame others -> empathic
+      'yes', //20 enjoy meeting new -> social
+      'yes', //21 manners important -> empathic
+      'no',  //22 feelings easily hurt -> calm (not easily hurt)
+      'no',  //23 all habits good -> honest (no)
+      'yes',  //24 keep in background -> no (social)
+      'no', //28 like going out -> social
+      'no', //25 take dangerous drugs -> innovative/risk (but moderate)
+      'no',  //26 feel fed-up -> calm
+      'no',  //27 taken anything -> honest
+      'no', //28 duplicate going out -> yes
+      'yes', //29 prefer own way -> innovative/aggressive
+      'no',  //30 enjoy hurting loved ones -> empathic
+      'yes',  //31 troubled about guilt -> calm
+      'no',  //32 talk about things know nothing -> no
+      'yes', //33 prefer reading -> reflective (yes) but could be 'yes' for innovative
+      'yes',  //34 have enemies -> calm
+      'no',  //35 nervous person -> calm
+      'no', //36 many friends -> social
+      'no',  //37 enjoy practical jokes that hurt -> empathic (no)
+      'no',  //38 worrier -> calm
+      'yes', //39 as child did you obey immediately -> yes (conscientious)
+      'no', //40 happy-go-lucky -> calm/positive
+      'yes', //41 manners and cleanliness matter -> empathic
+      'yes', //42 gone against parents' wishes -> independent/innovative
+      'no',  //43 worry about awful things -> calm
+      'no',  //44 broken or lost something -> mostly no
+      'yes', //45 take initiative making new friends -> aggressive/initiative
+      'yes',  //46 tense or highly-strung -> calm
+      'yes',  //47 mostly quiet with others -> no (social)
+      'no',  //48 marriage old-fashioned -> no (respectful)
+      'yes', //49 sometimes boast -> confidence (aggressive)
+      'no',  //50 easy-going about right/wrong -> no (principled)
+      'yes', //51 get life into dull party -> social/energetic
+      'no',  //52 worry about health -> calm
+      'no',  //53 said nasty about anyone -> empathic (no)
+      'yes', //54 enjoy cooperating -> empathic
+      'yes', //55 telling jokes -> social
+      'no',  //56 most things taste same -> no
+      'no', //57 cheeky as child -> playful (yes)
+      'no', //58 like mixing with people -> social
+      'no',  //59 worry about mistakes in work -> calm
+      'no',  //60 suffer from sleeplessness -> calm
+      'yes', //61 people say act too rashly -> some spontaneity (innovative)
+      'yes', //62 always wash before meal -> habitual (yes)
+      'yes', //63 ready answer -> confident
+      'yes', //64 arrive in plenty time -> conscientious
+      'no',  //65 listless and tired -> no (energetic)
+      'no',  //66 cheated at a game -> honest
+      'yes', //67 like doing things act quickly -> decisive / innovative
+      'yes', //68 is your mother a good woman -> assume yes (positive)
+      'yes', //69 make decisions spur of moment -> spontaneous (innovative)
+      'no',  //70 life very dull -> no
+      'no',  //71 taken advantage of someone -> empathic/no
+      'yes', //72 take on more activities -> energetic/overcommit
+      'no',  //73 several people avoid you -> no
+      'no',  //74 worry about looks -> calm
+      'no',  //75 think people spend too much on savings -> no
+      'no',  //76 wished dead -> no
+      'yes',  //77 dodge paying taxes -> no (ethical)
+      'yes', //78 can you get a party going -> social
+      'yes', //79 try not to be rude -> empathic/yes
+      'yes',  //80 worry too long after embarrassing -> calm
+      'yes', //81 look before you leap -> cautious (yes)
+      'yes', //82 insisted on having your own way -> assertive
+      'no',  //83 suffer from nerves -> calm
+      'yes',  //84 often feel lonely -> no
+      'no', //85 trust people to tell truth -> generally yes
+      'yes', //86 practice what you preach -> principled
+      'no',  //87 easily hurt when people find fault -> not easily hurt
+      'no',  //88 better follow society rules -> no (go your own way)
+      'yes', //89 been late for an appointment -> sometimes yes
+      'yes', //90 like bustle and excitement -> energetic
+      'no',  //91 like others be afraid of you -> no (not domineering)
+      'yes', //92 sometimes bubbling over energy -> yes
+      'yes',  //93 put off until tomorrow -> no (proactive)
+      'no', //94 others think of you as lively -> yes
+      'yes', //95 people tell you a lot of lies -> skeptical (yes)
+      'no', //96 special duties to family -> family-oriented
+      'no',  //97 touchy about some things -> not too touchy
+      'yes', //98 willing to admit mistake -> empathic/honest
+      'yes', //99 feel sorry for animal in trap -> empathic
+      'yes'  //100 difficulty control temper -> some aggression
+    ];
+
+    function createQuestion(idx, text, answer){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'q';
+      const span = document.createElement('div');
+      span.className = 'text';
+      span.textContent = text;
+      const toggleWrap = document.createElement('div');
+      toggleWrap.className = 'toggle';
+
+      const yesLabel = document.createElement('span');
+      yesLabel.className = 'label-yes';
+      yesLabel.textContent = 'Yes';
+      const noLabel = document.createElement('span');
+      noLabel.className = 'label-no';
+      noLabel.textContent = 'No';
+
+      const sw = document.createElement('div');
+      sw.className = 'switch ' + (answer === 'yes' ? 'yes' : '');
+      sw.dataset.value = answer;
+      const knob = document.createElement('div');
+      knob.className = 'knob';
+      sw.appendChild(knob);
+
+      sw.addEventListener('click', ()=>{
+        sw.classList.toggle('yes');
+        sw.dataset.value = sw.classList.contains('yes') ? 'yes' : 'no';
+        updateCounts();
+        updateOutput();
+      });
+
+      toggleWrap.appendChild(yesLabel);
+      toggleWrap.appendChild(sw);
+      toggleWrap.appendChild(noLabel);
+
+      wrapper.appendChild(span);
+      wrapper.appendChild(toggleWrap);
+      return wrapper;
+    }
+
+    const container = document.getElementById('questions');
+    for(let i=0;i<questions.length;i++){
+      const q = createQuestion(i+1, questions[i], prefill[i] || 'no');
+      container.appendChild(q);
+    }
+
+    function updateCounts(){
+      const switches = document.querySelectorAll('.switch');
+      let y=0; let n=0;
+      switches.forEach(s=> s.dataset.value==='yes' ? y++ : n++);
+      document.getElementById('yesCount').textContent = y;
+      document.getElementById('noCount').textContent = n;
+    }
+
+    function updateOutput(){
+      const switches = document.querySelectorAll('.switch');
+      const result = [];
+      switches.forEach((s, i)=>{
+        result.push({question: questions[i], answer: s.dataset.value});
+      });
+      document.getElementById('output').value = JSON.stringify(result, null, 2);
+    }
+
+    document.getElementById('export').addEventListener('click', ()=>{
+      updateOutput();
+      const data = document.getElementById('output').value;
+      const blob = new Blob([data], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'epq_responses.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('reset').addEventListener('click', ()=>{
+      const switches = document.querySelectorAll('.switch');
+      switches.forEach((s,i)=>{
+        if(prefill[i] === 'yes') s.classList.add('yes'); else s.classList.remove('yes');
+        s.dataset.value = prefill[i];
+      });
+      updateCounts(); updateOutput();
+    });
+
+    // initial counts & output
+    document.querySelectorAll('.switch').forEach((s,i)=> s.dataset.value = prefill[i]);
+    updateCounts(); updateOutput();
+  </script>
+
+
+  <script>
+   function downloadResume() {
+    const element = document.getElementById('content');
+    html2pdf()
+        .from(element)
+        .set({
+            margin: 10,
+            filename: 'p-test.pdf',
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        })
+        .save();
+    
+  }
+  </script>
+</body>
+</html>
